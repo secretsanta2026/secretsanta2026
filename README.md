@@ -19,7 +19,7 @@ A secure and simple web application for organizing Secret Santa gift exchanges i
 - Node.js (v14 or higher)
 - An email account for sending emails (Gmail recommended)
 
-### Installation
+### Installation (Next.js)
 
 1. **Install dependencies:**
    ```powershell
@@ -49,14 +49,14 @@ A secure and simple web application for organizing Secret Santa gift exchanges i
    - Go to: Google Account → Security → 2-Step Verification → App passwords
    - Generate a new app password and use it in `.env`
 
-3. **Start the server:**
+3. **Start the dev server:**
    ```powershell
-   npm start
+   npm run dev
    ```
 
 4. **Open the admin page:**
-   
-   Navigate to: http://localhost:3000
+
+   Navigate to: http://localhost:3000 (or your deployed Vercel URL)
 
 ## 📖 How to Use
 
@@ -131,7 +131,7 @@ Secret Santa/
 
 ### Change Email Template
 
-Edit the email HTML in `server.js` (search for `mailOptions`) to customize:
+Edit the email HTML in `pages/api/admin/setup.js` (search for `mail`) to customize:
 - Colors and styling
 - Message text
 - Company logo
@@ -144,22 +144,29 @@ PORT=8080
 APP_URL=http://localhost:8080
 ```
 
-### Deploy to Production
+### Deploy to Vercel
 
-For production deployment:
+This project is now a Next.js app and is ready for Vercel. Steps:
 
-1. Update `APP_URL` in `.env` to your domain:
-   ```env
-   APP_URL=https://yourdomain.com
-   ```
-
-2. Use a process manager like PM2:
+1. Push to GitHub (if not already):
    ```powershell
-   npm install -g pm2
-   pm2 start server.js --name secret-santa
+   git add .
+   git commit -m "Convert to Next.js app"
+   git push
    ```
 
-3. Set up a reverse proxy (nginx/Apache) if needed
+2. Sign in to https://vercel.com and import the GitHub repository. Vercel will detect Next.js automatically.
+
+3. In Vercel project settings -> Environment Variables, add the following:
+   - `EMAIL_HOST` (e.g. `smtp.gmail.com`)
+   - `EMAIL_PORT` (e.g. `587`)
+   - `EMAIL_USER`
+   - `EMAIL_PASS` (App Password for Gmail)
+   - `APP_URL` (set to your Vercel URL after deploy, e.g. `https://my-app.vercel.app`)
+
+4. Deploy. Vercel will run `npm run build` and host both the frontend and API routes.
+
+Important: the app currently uses a local `data.json` file for storage. On Vercel, serverless functions do not have persistent writable filesystem. For production you should replace `data.json` with a hosted database (e.g. Postgres, Supabase) or another persistent store. This repo keeps `data.json` for simple demos but you must migrate to a DB for reliable production.
 
 ## 🐛 Troubleshooting
 
