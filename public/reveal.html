@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎅 Your Secret Santa</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 50px 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        h1 {
+            color: #dc3545;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        .description {
+            color: #666;
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .reveal-button {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 20px 50px;
+            font-size: 1.3em;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 10px 30px rgba(40, 167, 69, 0.3);
+        }
+
+        .reveal-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(40, 167, 69, 0.4);
+        }
+
+        .reveal-button:active {
+            transform: translateY(-1px);
+        }
+
+        .reveal-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            margin-top: 40px;
+            padding: 30px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 15px;
+            animation: fadeIn 0.5s;
+        }
+
+        .result-label {
+            color: white;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        .result-name {
+            color: white;
+            font-size: 3em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .already-revealed {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .info-badge {
+            display: inline-block;
+            background: #fff3cd;
+            color: #856404;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 0.9em;
+            margin-top: 20px;
+            border: 2px solid #ffeaa7;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #f5c6cb;
+        }
+
+        .loading {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .gift-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .card {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .result-name {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="gift-icon">🎁</div>
+            <h1>Secret Santa</h1>
+            
+            <div id="content">
+                <div id="initialView">
+                    <p class="description">
+                        Welcome to the Secret Santa gift exchange! 🎅<br><br>
+                        Click the button below to reveal who you'll be buying a gift for this year.
+                        <strong>Remember: It's a secret!</strong> 🤫
+                    </p>
+                    <button class="reveal-button" onclick="revealSecretSanta()">
+                        🎄 Reveal My Secret Santa 🎄
+                    </button>
+                </div>
+
+                <div id="loadingView" class="hidden">
+                    <p class="loading">✨ Revealing your Secret Santa...</p>
+                </div>
+
+                <div id="errorView" class="hidden">
+                    <div class="error">
+                        <strong>❌ Oops!</strong><br>
+                        <span id="errorMessage"></span>
+                    </div>
+                </div>
+
+                <div id="resultView" class="hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function getUrlParameter(name) {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            const results = regex.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        }
+
+        function showView(viewId) {
+            document.querySelectorAll('#content > div').forEach(div => {
+                div.classList.add('hidden');
+            });
+            document.getElementById(viewId).classList.remove('hidden');
+        }
+
+        async function revealSecretSanta() {
+            const token = getUrlParameter('token');
+            
+            if (!token) {
+                showView('errorView');
+                document.getElementById('errorMessage').textContent = 'Invalid or missing token. Please use the link from your email.';
+                return;
+            }
+
+            showView('loadingView');
+
+            try {
+                const response = await fetch(`/api/reveal?token=${encodeURIComponent(token)}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showView('errorView');
+                    document.getElementById('errorMessage').textContent = data.error || 'Something went wrong.';
+                    return;
+                }
+
+                // Show result
+                const resultView = document.getElementById('resultView');
+                const alreadyRevealedClass = data.alreadyRevealed ? 'already-revealed' : '';
+                const alreadyRevealedBadge = data.alreadyRevealed 
+                    ? '<div class="info-badge">ℹ️ You already revealed this earlier</div>' 
+                    : '<div class="info-badge">🎉 First time revealing!</div>';
+                
+                resultView.innerHTML = `
+                    <div class="result ${alreadyRevealedClass}">
+                        <div class="result-label">You are Secret Santa for:</div>
+                        <div class="result-name">${data.recipient}</div>
+                    </div>
+                    ${alreadyRevealedBadge}
+                    <p style="margin-top: 30px; color: #666; font-size: 0.95em;">
+                        🎁 Remember to keep it a secret!<br>
+                        Happy gift shopping! 🎄
+                    </p>
+                `;
+                
+                showView('resultView');
+
+            } catch (error) {
+                showView('errorView');
+                document.getElementById('errorMessage').textContent = 'Failed to connect to the server. Please try again later.';
+                console.error(error);
+            }
+        }
+
+        // Check if token exists on page load
+        window.addEventListener('load', () => {
+            const token = getUrlParameter('token');
+            if (!token) {
+                showView('errorView');
+                document.getElementById('errorMessage').textContent = 'Invalid or missing token. Please use the link from your email.';
+            }
+        });
+    </script>
+</body>
+</html>
