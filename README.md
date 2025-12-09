@@ -12,6 +12,24 @@ A secure and simple web application for organizing Secret Santa gift exchanges i
 - **Email Notifications**: Automatic email sending with attractive HTML templates
 - **Secure Tokens**: Cryptographically secure tokens prevent tampering
 
+## 💾 Data Storage
+
+This application uses a simple **JSON file** (`data.json`) to store:
+- **Participants**: Names, emails, and unique tokens
+- **Assignments**: Who is the Secret Santa for whom
+- **Revealed Status**: Tracking who has already seen their assignment
+
+### Local Development
+- Data is stored in `data.json` in your project folder
+- File is created automatically when you run the first Secret Santa setup
+- Safe to delete `data.json` to start fresh
+
+### Production Deployment (Vercel)
+- **Important**: Vercel serverless functions have **ephemeral storage**
+- Your `data.json` will reset on each deployment or function restart
+- For production use, consider upgrading to a database (PostgreSQL/MongoDB) for permanent storage
+- For testing/temporary events, the JSON file approach works fine
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -95,14 +113,28 @@ A secure and simple web application for organizing Secret Santa gift exchanges i
 
 ```
 Secret Santa/
-├── server.js              # Main Express server with API endpoints
-├── package.json           # Node.js dependencies
+├── package.json           # Node.js dependencies and Next.js scripts
+├── next.config.js         # Next.js configuration
 ├── .env                   # Configuration (email, server settings)
 ├── .env.example           # Example configuration file
-├── data.json             # Auto-generated data storage (participants, assignments)
+├── data.json             # JSON storage (participants, assignments, revealed status)
+├── lib/
+│   └── storage.js        # Simple JSON file read/write functions
+├── pages/
+│   ├── _app.js           # Next.js app wrapper
+│   ├── index.js          # Admin interface (React)
+│   ├── reveal.js         # Participant reveal page (React)
+│   └── api/              # Next.js API routes
+│       ├── reveal.js     # Token-based reveal endpoint
+│       └── admin/
+│           ├── setup.js  # Create participants & send emails
+│           ├── status.js # Get current status
+│           └── reset.js  # Reset all data
+├── styles/
+│   └── global.css        # Global CSS styles
 └── public/
-    ├── index.html        # Admin interface for setup
-    └── reveal.html       # Participant reveal page
+    ├── index.html        # Legacy admin interface (kept for reference)
+    └── reveal.html       # Legacy reveal page (kept for reference)
 ```
 
 ## 🛠️ API Endpoints

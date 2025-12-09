@@ -1,23 +1,11 @@
-import fs from 'fs';
-import path from 'path';
+import { loadData, saveData } from '../../lib/storage';
 
-const DATA_FILE = path.join(process.cwd(), 'data.json');
-
-function loadData() {
-  if (fs.existsSync(DATA_FILE)) return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-  return { participants: {}, assignments: {}, revealed: {} };
-}
-
-function saveData(data) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-}
-
-export default function handler(req, res) {
+export default async function handler(req, res) {
   const { token } = req.query;
   if (!token) return res.status(400).json({ error: 'Token is required' });
 
   try {
-    const data = loadData();
+    const data = await loadData();
     let giver = null;
     for (const name in data.participants) {
       if (data.participants[name].token === token) { giver = name; break; }
@@ -27,7 +15,7 @@ export default function handler(req, res) {
       return res.json({ giver, recipient: data.assignments[giver], alreadyRevealed: true });
     }
     data.revealed[giver] = new Date().toISOString();
-    saveData(data);
+    await saveData(data);
     return res.json({ giver, recipient: data.assignments[giver], alreadyRevealed: false });
   } catch (err) {
     console.error('reveal error', err);

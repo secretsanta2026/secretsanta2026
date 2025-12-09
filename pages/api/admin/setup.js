@@ -1,18 +1,6 @@
-import fs from 'fs';
-import path from 'path';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
-
-const DATA_FILE = path.join(process.cwd(), 'data.json');
-
-function loadData() {
-  if (fs.existsSync(DATA_FILE)) return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-  return { participants: {}, assignments: {}, revealed: {} };
-}
-
-function saveData(data) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-}
+import { loadData, saveData } from '../../../lib/storage';
 
 function generateToken() {
   return crypto.randomBytes(32).toString('hex');
@@ -68,7 +56,7 @@ export default async function handler(req, res) {
     const assignments = performDraw(participantMap);
 
     const data = { participants: participantMap, assignments, revealed: {} };
-    saveData(data);
+    await saveData(data);
 
     // send emails
     const transporter = createTransporter();
