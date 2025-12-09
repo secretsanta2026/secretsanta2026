@@ -1,6 +1,11 @@
 import crypto from 'crypto';
-import nodemailer from 'nodemailer';
 import { loadData, saveData } from '../../../lib/storage';
+const nodemailer = require('nodemailer');
+
+// Load environment variables for local development
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 
 function generateToken() {
   return crypto.randomBytes(32).toString('hex');
@@ -30,15 +35,31 @@ function performDraw(participants) {
 }
 
 function createTransporter() {
-  return nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: process.env.EMAIL_PORT,
-    secure: false,
+  // Debug environment variables
+  console.log('Email config:', {
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: process.env.EMAIL_PORT || '587',
+    user: process.env.EMAIL_USER ? '***@' + process.env.EMAIL_USER.split('@')[1] : 'undefined',
+    pass: process.env.EMAIL_PASS ? 'configured' : 'missing'
+  });
+
+  const config = {
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.EMAIL_PORT) || 587,
+    secure: false, // Use STARTTLS for port 587
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
-    }
-  });
+    },
+    tls: {
+      rejectUnauthorized: false
+    },
+    connectionTimeout: 60000,
+    greetingTimeout: 30000,
+    socketTimeout: 60000
+  };
+
+  return nodemailer.createTransporter(config);
 }
 
 export default async function handler(req, res) {
