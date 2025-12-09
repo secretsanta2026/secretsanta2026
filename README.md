@@ -14,21 +14,27 @@ A secure and simple web application for organizing Secret Santa gift exchanges i
 
 ## 💾 Data Storage
 
-This application uses a simple **JSON file** (`data.json`) to store:
-- **Participants**: Names, emails, and unique tokens
-- **Assignments**: Who is the Secret Santa for whom
-- **Revealed Status**: Tracking who has already seen their assignment
+This application uses **smart storage** that automatically adapts to your environment:
 
 ### Local Development
-- Data is stored in `data.json` in your project folder
+- Data is stored in `data.json` file in your project folder
 - File is created automatically when you run the first Secret Santa setup
+- Persistent across server restarts
 - Safe to delete `data.json` to start fresh
 
-### Production Deployment (Vercel)
-- **Important**: Vercel serverless functions have **ephemeral storage**
-- Your `data.json` will reset on each deployment or function restart
-- For production use, consider upgrading to a database (PostgreSQL/MongoDB) for permanent storage
-- For testing/temporary events, the JSON file approach works fine
+### Production Deployment (Vercel/Serverless)
+- Uses **in-memory storage** (no file system writes required)
+- Data persists during the session but resets on new deployments
+- **Perfect for Secret Santa events** - typically one-time holiday activities
+- No additional setup or external services required
+
+### Storage Data Structure
+The system stores:
+- **Participants**: Names, emails, and unique security tokens
+- **Assignments**: Who is the Secret Santa for whom  
+- **Revealed Status**: Tracking who has already seen their assignment
+
+> **Note**: For permanent data persistence in production, consider upgrading to a database (PostgreSQL/MongoDB). However, the in-memory approach works excellently for seasonal Secret Santa events.
 
 ## 🚀 Quick Start
 
