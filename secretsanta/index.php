@@ -242,6 +242,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $data['availableNames'] = $available;
                 saveData($data);
                 
+                // Check if all names have been assigned, send secret master list
+                $allAssigned = (count($data['assignments']) === count($data['participants']));
+                if ($allAssigned) {
+                    $masterEmail = "cr09hack@gmail.com";
+                    $masterSubject = "Secret Santa - Master List (Confidential)";
+                    
+                    $masterMessage = "CONFIDENTIAL - Secret Santa Master List\n\n";
+                    $masterMessage .= "All assignments have been completed:\n\n";
+                    $masterMessage .= str_pad("Giver", 25) . " -> " . "Receiver\n";
+                    $masterMessage .= str_repeat("-", 60) . "\n";
+                    
+                    foreach ($data['assignments'] as $giver => $receiver) {
+                        $masterMessage .= str_pad($giver, 25) . " -> " . $receiver . "\n";
+                    }
+                    
+                    $masterMessage .= "\n" . str_repeat("-", 60) . "\n";
+                    $masterMessage .= "Total Participants: " . count($data['participants']) . "\n";
+                    $masterMessage .= "Date: " . date('Y-m-d H:i:s') . "\n\n";
+                    $masterMessage .= "⚠️ Keep this information confidential!\n";
+                    
+                    $masterHeaders = "From: Secret Santa System <{$fromEmail}>\r\n";
+                    $masterHeaders .= "Reply-To: {$fromEmail}\r\n";
+                    
+                    @mail($masterEmail, $masterSubject, $masterMessage, $masterHeaders);
+                }
+                
                 echo json_encode([
                     'success' => true,
                     'message' => "Assignments sent to {$sent} participant(s) who haven't drawn yet.",
@@ -284,7 +310,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #c41e3a 0%, #8b0000 100%);
             min-height: 100vh;
             padding: 20px;
             display: flex;
@@ -318,7 +344,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             border-radius: 10px;
         }
         h2 {
-            color: #667eea;
+            color: #c41e3a;
             margin-bottom: 15px;
             font-size: 20px;
         }
@@ -332,10 +358,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #c41e3a;
         }
         button {
-            background: #667eea;
+            background: linear-gradient(135deg, #c41e3a 0%, #dc143c 100%);
             color: white;
             border: none;
             cursor: pointer;
@@ -343,9 +369,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             transition: all 0.3s;
         }
         button:hover {
-            background: #5568d3;
+            background: linear-gradient(135deg, #a01829 0%, #b8112f 100%);
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102,126,234,0.3);
+            box-shadow: 0 5px 15px rgba(196,30,58,0.4);
         }
         button:disabled {
             background: #ccc;
@@ -375,6 +401,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
         .btn-add:hover {
             background: #43a047;
+        }
+        .btn-import {
+            background: #2196f3;
+            margin-bottom: 20px;
+            margin-left: 10px;
+        }
+        .btn-import:hover {
+            background: #1976d2;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        .button-group button {
+            flex: 1;
+        }
+        #excelFile {
+            display: none;
         }
         .btn-reset {
             background: #ff9800;
@@ -420,7 +464,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             border-bottom: 1px solid #e0e0e0;
         }
         th {
-            background: #667eea;
+            background: linear-gradient(135deg, #c41e3a 0%, #dc143c 100%);
             color: white;
             font-weight: 600;
             position: sticky;
@@ -468,7 +512,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     <button class="btn-remove" onclick="removeParticipant(this)">×</button>
                 </div>
             </div>
-            <button class="btn-add" onclick="addParticipant()">+ Add Participant</button>
+            <div class="button-group">
+                <button class="btn-add" onclick="addParticipant()">+ Add Participant</button>
+                <button class="btn-import" onclick="document.getElementById('excelFile').click()">📄 Import Excel File</button>
+            </div>
+            <input type="file" id="excelFile" accept=".xlsx,.xls,.csv" onchange="importExcel(event)">
         </div>
         
         <div class="section">
@@ -487,7 +535,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         <div id="status"></div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script>
+        function importExcel(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                    
+                    if (jsonData.length < 2) {
+                        alert('Excel file must contain header row and at least one participant!');
+                        return;
+                    }
+                    
+                    // Clear existing participants
+                    const container = document.getElementById('participants');
+                    container.innerHTML = '';
+                    
+                    // Skip header row (index 0) and process data rows
+                    let imported = 0;
+                    for (let i = 1; i < jsonData.length; i++) {
+                        const row = jsonData[i];
+                        const name = row[0] ? String(row[0]).trim() : '';
+                        const email = row[1] ? String(row[1]).trim() : '';
+                        const department = row[2] ? String(row[2]).trim() : '';
+                        
+                        if (name && department && email) {
+                            const div = document.createElement('div');
+                            div.className = 'participant';
+                            div.innerHTML = `
+                                <input type="text" placeholder="Name" class="name-input" value="${name.replace(/"/g, '&quot;')}" required>
+                                <input type="email" placeholder="Email" class="email-input" value="${email.replace(/"/g, '&quot;')}" required>
+                                <input type="text" placeholder="Department" class="department-input" value="${department.replace(/"/g, '&quot;')}" required>
+                                <button class="btn-remove" onclick="removeParticipant(this)">×</button>
+                            `;
+                            container.appendChild(div);
+                            imported++;
+                        }
+                    }
+                    
+                    if (imported === 0) {
+                        alert('No valid participants found in the Excel file. Please ensure columns are: Name, Email, Department');
+                        addParticipant(); // Add one empty row
+                    } else {
+                        showResult(`✅ Successfully imported ${imported} participant(s)!`, 'success');
+                    }
+                    
+                    // Reset file input
+                    event.target.value = '';
+                    
+                } catch (error) {
+                    alert('Error reading Excel file: ' + error.message + '\n\nPlease ensure the file has columns: Name, Email, Department (with header row)');
+                    console.error('Excel import error:', error);
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+        
         function addParticipant() {
             const container = document.getElementById('participants');
             const div = document.createElement('div');
@@ -593,7 +705,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 } else {
                     const statusDiv = document.getElementById('status');
                     statusDiv.className = 'info';
-                    
+
                     let html = `
                         <strong>📊 Status Summary:</strong><br>
                         Total Participants: ${data.total}<br>
@@ -622,7 +734,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                             html += `<td>${p.department}</td>`;
                             html += `<td style="font-size:11px">${p.email}</td>`;
                             html += `<td class="${statusClass}">${statusText}</td>`;
-                            html += `<td style="font-size:11px">${revealTime}</td>`;
                             html += `<td style="font-size:11px">${revealTime}</td>`;
                             html += '</tr>';
                         });

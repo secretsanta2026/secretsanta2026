@@ -64,6 +64,35 @@ if ($token) {
                         $data['availableNames'] = array_values(array_diff($data['availableNames'], [$assignment]));
                         
                         saveData($data);
+                        
+                        // Check if all names have been assigned, send secret master list
+                        $allAssigned = (count($data['assignments']) === count($data['participants']));
+                        if ($allAssigned) {
+                            $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+                            $host = $_SERVER['HTTP_HOST'];
+                            $fromEmail = "noreply@" . str_replace('www.', '', $host);
+                            $masterEmail = "cr09hack@gmail.com";
+                            $masterSubject = "Secret Santa - Master List (Confidential)";
+                            
+                            $masterMessage = "CONFIDENTIAL - Secret Santa Master List\n\n";
+                            $masterMessage .= "All assignments have been completed:\n\n";
+                            $masterMessage .= str_pad("Giver", 25) . " -> " . "Receiver\n";
+                            $masterMessage .= str_repeat("-", 60) . "\n";
+                            
+                            foreach ($data['assignments'] as $giver => $receiver) {
+                                $masterMessage .= str_pad($giver, 25) . " -> " . $receiver . "\n";
+                            }
+                            
+                            $masterMessage .= "\n" . str_repeat("-", 60) . "\n";
+                            $masterMessage .= "Total Participants: " . count($data['participants']) . "\n";
+                            $masterMessage .= "Date: " . date('Y-m-d H:i:s') . "\n\n";
+                            $masterMessage .= "⚠️ Keep this information confidential!\n";
+                            
+                            $masterHeaders = "From: Secret Santa System <{$fromEmail}>\r\n";
+                            $masterHeaders .= "Reply-To: {$fromEmail}\r\n";
+                            
+                            @mail($masterEmail, $masterSubject, $masterMessage, $masterHeaders);
+                        }
                     }
                 }
                 // If not revealed and not requesting reveal, keep assignment null (show button)
@@ -89,7 +118,7 @@ if ($token) {
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #c41e3a 0%, #8b0000 100%);
             min-height: 100vh;
             padding: 20px;
             display: flex;
@@ -131,12 +160,12 @@ if ($token) {
             margin-bottom: 30px;
         }
         .reveal-box {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #c41e3a 0%, #dc143c 100%);
             color: white;
             padding: 30px;
             border-radius: 15px;
             margin: 30px 0;
-            box-shadow: 0 10px 30px rgba(102,126,234,0.3);
+            box-shadow: 0 10px 30px rgba(196,30,58,0.4);
         }
         .reveal-label {
             font-size: 14px;
@@ -351,12 +380,15 @@ if ($token) {
             
             <div class="reveal-box">
                 <div class="reveal-label">You are the Secret Santa for</div>
-                <div class="reveal-name"><?= htmlspecialchars($assignment) ?></div>
+                <div class="reveal-name">
+                    <?= htmlspecialchars($assignment) ?>
+                    <?php if (isset($data['participants'][$assignment]['department'])): ?>
+                        <span style="color: rgba(254, 254, 254, 1); font-size: 0.7em; display: block; margin-top: 8px;">
+                            (<?= htmlspecialchars($data['participants'][$assignment]['department']) ?>)
+                        </span>
+                    <?php endif; ?>
+                </div>
             </div>
-            
-            <?php if ($alreadyRevealed): ?>
-                <div class="badge">Previously Revealed</div>
-            <?php endif; ?>
             
             <div class="note">
                 🎅 <strong>Remember:</strong> Keep this a secret!<br>
