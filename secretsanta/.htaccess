@@ -1,0 +1,15 @@
+# Protect data file from direct access
+<Files "data.json">
+    Order Allow,Deny
+    Deny from all
+</Files>
+
+# Set default charset
+AddDefaultCharset UTF-8
+
+# Disable directory listing
+Options -Indexes
+
+# Custom error pages (optional)
+# ErrorDocument 404 /secretsanta/404.php
+# ErrorDocument 500 /secretsanta/500.php
